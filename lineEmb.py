@@ -21,7 +21,8 @@ ByteTensor = torch.cuda.ByteTensor if USE_CUDA else torch.ByteTensor
 class lineEmb():
     
     def __init__(self, edge_file, social_edges=None, name='wiki', emb_size= 2,  
-                     alpha=5, epoch=5, batch_size= 256, shuffel=True , neg_samples=5):
+                     alpha=5, epoch=5, batch_size= 256, shuffel=True , neg_samples=5,
+                      sequence_length=80, context_size=5, no_of_sequences_per_node=5):
     
         self.emb_size = emb_size
         self.shuffel = shuffel
@@ -34,6 +35,10 @@ class lineEmb():
         self.name=name
         self.G = nx.read_edgelist(edge_file)
         self.social_edges= social_edges
+
+        self.sequence_length=sequence_length
+        self.context_size=context_size
+        self.no_of_sequences_per_node=no_of_sequences_per_node
         
         self.index2word = dict()
         self.word2index = dict()
@@ -41,6 +46,7 @@ class lineEmb():
         
         self.emb_file= './emb/%s_size_%d_line.emb'%(self.name, self.emb_size)  
                  
+
 
     def getBatch(self, batch_size, train_data):
         
@@ -93,17 +99,19 @@ class lineEmb():
 
         self.index2word = {v:k for k, v in self.word2index.items()}
                
-    def prepare_trainData(self):    
+    def prepare_trainData(self, train_data):    
        
         print('prepare training data ...')
-        
-        self.train_data = []
-       
-        for u, v  in self.social_edges:
 
-            for i in range(self.alpha):
-                self.train_data.append(( u, v))
-                self.train_data.append(( v, u))
+        self.train_data = train_data
+        
+        # self.train_data = []
+       
+        # for u, v  in self.social_edges:
+
+        #     for i in range(self.alpha):
+        #         self.train_data.append(( u, v))
+        #         self.train_data.append(( v, u))
 
         u_p = []
         v_p = []
@@ -151,16 +159,34 @@ class lineEmb():
         
         return torch.cat(neg_samples)        
 
-   
+
+    def random_walk_sample(self, no_of_sequences_per_node, sequence_length):
+        sequences = []
+        for node in self.all_nodes:
+            for i in range(no_of_sequences_per_node):
+                self.capture_sequence(sequences, node, sequence_length)
+        return sequences
+
+    def capture_sequence(self, sequence, node, counter):
+        if counter==0:
+            return sequence
+        else:
+            counter-=1
+            connected_nodes = list(self.G[node])
+            random_neighbor_node = random.randint(0,len(connected_nodes)-1)
+            sequence.append((node, connected_nodes[random_neighbor_node]))
+            return self.capture_sequence(sequence, connected_nodes[random_neighbor_node], counter)
     
 
     def train (self,nb_labels):
         
-        train_data= self.prepare_trainData()
+        train_data= self.prepare_trainData(self.random_walk_sample(self.no_of_sequences_per_node, self.sequence_length))
         
         final_losses = []
         
-        model = LossNegSampling(len(set(self.all_nodes)), self.emb_size,nb_labels)
+
+        model = LossNegSampling(len(set(self.all_nodes)), self.emb_size, nb_labels,
+         self.sequence_length, self.context_size, self.no_of_sequences_per_node)
         
         if USE_CUDA:
            model = model.cuda()

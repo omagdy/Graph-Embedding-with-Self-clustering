@@ -6,16 +6,21 @@ import random
 
 
 final_loss_list=[]
-gamma0=0.1
+
+
 class LossNegSampling(nn.Module):
     
-    def __init__(self, num_nodes, emb_dim,nb_labels):
+    def __init__(self, num_nodes, emb_dim,nb_labels, sequence_length, context_size, no_of_sequences_per_node):
         
         super(LossNegSampling, self).__init__()
-        V=num_nodes
-        L=emb_dim
-        t=0
-        self.t=t
+
+        self.V=num_nodes
+        self.t=0
+        self.gamma = 0.1 #0.1 or 0.01 or 0.001
+        self.l = sequence_length
+        self.w = context_size
+        self.N = no_of_sequences_per_node
+
         self.embedding_u = nn.Embedding(num_nodes, emb_dim) #  embedding  u
         self.embedding_com = nn.Embedding(nb_labels, emb_dim) #  embedding  community centers
        
@@ -55,9 +60,10 @@ class LossNegSampling(nn.Module):
         loss= -torch.mean(sum_all)
 
         
-        
-        #gamma=gamma0*(10**(-t*numpy.log10(gamma0)/V*L)
-        
+                
+        self.gamma=self.gamma*(10**((-self.t*np.log10(self.gamma))/(self.l*self.w*self.V*self.N)))
+        print("Gamma: "+str(self.gamma))
+
         n = u_embed.shape[0]
         d = u_embed.shape[1]        
         z = u_embed.repeat(1,self.nb_labels,1)  
@@ -73,7 +79,7 @@ class LossNegSampling(nn.Module):
         loss2= (dist.min(dim=1)[0]**2).mean()
 
         cluster_choice=torch.argmin(dist,dim=1)
-        final_loss=loss+loss2
+        final_loss=loss+(loss2*self.gamma)
 
         return final_loss,cluster_choice
 
