@@ -3,7 +3,7 @@ from torch.autograd import Variable
 import torch.optim as optim
 import random
 import numpy as np
-
+import nltk
 import time
 import networkx as nx
 
@@ -99,19 +99,21 @@ class lineEmb():
 
         self.index2word = {v:k for k, v in self.word2index.items()}
                
-    def prepare_trainData(self, train_data):    
+    def prepare_trainData(self, sequences):    
        
         print('prepare training data ...')
-
-        self.train_data = train_data
         
-        # self.train_data = []
+        self.train_data = []
        
         # for u, v  in self.social_edges:
 
         #     for i in range(self.alpha):
         #         self.train_data.append(( u, v))
         #         self.train_data.append(( v, u))
+
+        for sequence in sequences:
+            for i in range(self.context_size * 2 + 1):
+                self.train_data.append((sequence[self.context_size], sequence[i]))
 
         u_p = []
         v_p = []
@@ -124,7 +126,6 @@ class lineEmb():
             v_p.append(self.prepare_node(tr[1], self.word2index).view(1, -1))
             tr_num+=1
             
-        
         train_samples = list(zip(u_p, v_p))
         
         print(len(train_samples), 'samples are ready ...')
@@ -164,7 +165,11 @@ class lineEmb():
         sequences = []
         for node in self.all_nodes:
             for i in range(no_of_sequences_per_node):
-                self.capture_sequence(sequences, node, sequence_length)
+                node_sequence = []
+                self.capture_sequence(node_sequence, node, sequence_length)
+                sequences.append(node_sequence)
+        flatten = lambda list: [item for sublist in list for item in sublist]
+        windows = flatten([list(nltk.ngrams(c, self.context_size * 2 + 1)) for c in sequences])
         return sequences
 
     def capture_sequence(self, sequence, node, counter):
@@ -174,7 +179,7 @@ class lineEmb():
             counter-=1
             connected_nodes = list(self.G[node])
             random_neighbor_node = random.randint(0,len(connected_nodes)-1)
-            sequence.append((node, connected_nodes[random_neighbor_node]))
+            sequence.append(connected_nodes[random_neighbor_node])
             return self.capture_sequence(sequence, connected_nodes[random_neighbor_node], counter)
     
 
@@ -220,9 +225,6 @@ class lineEmb():
                 final_losses.append(final_loss.data.cpu().numpy())
             
 
-            
-            
-            
             t2= time.time()
             final_loss_list.append(np.mean(final_losses))
             print(self.name, 'loss: %0.3f '%np.mean(final_losses),'Epoch time: ', '%0.4f'%(t2-t1), 'dimension size:', self.emb_size,' alpha: ', self.alpha )
