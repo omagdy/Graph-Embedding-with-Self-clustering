@@ -89,3 +89,19 @@ class LossNegSampling(nn.Module):
         embeds = self.embedding_u(input_node) ### u
 
         return embeds
+
+    @staticmethod
+    def cluster_labels(encode_output, centroids):
+        """
+        Alternate Method for node cluster Identification
+
+        """
+        assert encode_output.size(2) == centroids.size(1), "Dimension mismatch"
+        final_clusters = []
+        for i in range(encode_output.size(0)):
+            dists = []
+            for j in range(centroids.size(0)):
+                dist = torch.norm(encode_output[i][0] - centroids[j], float("inf"))
+                dists.append(dist)
+            final_clusters.append(dists.index(min(dists)))
+        return final_clusters
