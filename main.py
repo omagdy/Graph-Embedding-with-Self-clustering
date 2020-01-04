@@ -1,4 +1,3 @@
-
 #from eval import node_classification, plot_embeddings, link_prediction
 
 import pickle
@@ -37,6 +36,9 @@ if __name__=='__main__':
             embeddings= model.train(nb_labels)
         
         print('\n')
+        
+        with open('embeddings.pickle', 'wb') as handle:
+        pickle.dump(embeddings, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
         for i in range(1,5):
             print(i, embeddings[i])
