@@ -43,11 +43,7 @@ w2v = np.zeros((VOCAB_SIZE, EMBEDDING_DIM))
 # sess.close()
 # endregion
 # region 2 Method 2
-tsv_file_path = FOLDER_PATH + r"\metadata.tsv"
-with open(tsv_file_path, 'w+', encoding='utf-8') as file_metadata:
-    for i, node in enumerate(embeddings.keys()):
-        w2v[i] = embeddings[node]
-        file_metadata.write(str(node) + '\n')
+
 tsv_file_path = FOLDER_PATH + r"\metadata_emb.tsv"
 with open(tsv_file_path, 'w+', encoding='utf-8') as file_metadata:
     for i, node in enumerate(embeddings.keys()):
