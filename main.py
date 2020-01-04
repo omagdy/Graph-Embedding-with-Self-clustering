@@ -9,6 +9,10 @@ import numpy
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+import pandas as pd
+import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D
     
 if __name__=='__main__':
     
@@ -53,3 +57,43 @@ if __name__=='__main__':
     plt.plot(final_loss_list)
     plt.ylabel('loss')
     plt.show()
+    
+    text_file = open("cluster.txt", "r")
+    lines = text_file.readlines()
+    cluster = [0 for i in range(500)]
+    for line in lines:
+        ll = line.strip().split(" ")
+        cluster[int(ll[0])] = int(ll[1])
+    text_file.close()
+    cluster = np.array(cluster)
+    Embedding = embeddings.values()
+    Embedding = list(Embedding)
+
+    def vis_3D (Embedding,cluster) :
+        pca = PCA(n_components=3)
+        pca = pca.fit_transform(Embedding)
+        principalDf = pd.DataFrame(data=pca, columns=['one', 'two','three'])
+        principalDf["y"] = cluster
+        fig = plt.figure(figsize=(16, 10))
+        ax = Axes3D(fig)
+        ax.scatter(principalDf['one'], principalDf['two'], principalDf['three'], c=principalDf['y'], marker='o')
+
+        plt.show()
+
+    def vis_2D(Embedding,cluster):
+        pca = PCA(n_components=2)
+        pca = pca.fit_transform(Embedding)
+        principalDf = pd.DataFrame(data=pca, columns=['one', 'two'])
+        principalDf["y"] = cluster
+        plt.figure(figsize=(8, 8))
+        sns.scatterplot(
+        x="one", y="two",
+        hue="y",
+        palette=sns.color_palette("husl", 5),
+        data=principalDf,
+        legend="full"
+         )
+        plt.show()
+
+    vis_2D(Embedding,cluster)
+    vis_3D(Embedding,cluster)
