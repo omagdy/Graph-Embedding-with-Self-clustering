@@ -62,7 +62,7 @@ class LossNegSampling(nn.Module):
         
                 
         self.gamma=self.gamma*(10**((-self.t*np.log10(self.gamma))/(self.l*self.w*self.V*self.N)))
-        print("Gamma: "+str(self.gamma))
+        # print("Gamma: "+str(self.gamma))
 
         n = u_embed.shape[0]
         d = u_embed.shape[1]        

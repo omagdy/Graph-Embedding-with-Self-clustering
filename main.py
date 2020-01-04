@@ -42,7 +42,7 @@ if __name__=='__main__':
         print('\n')
         
         with open('embeddings.pickle', 'wb') as handle:
-        pickle.dump(embeddings, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        	pickle.dump(embeddings, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
         for i in range(1,5):
             print(i, embeddings[i])
