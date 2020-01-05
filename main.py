@@ -2,6 +2,8 @@
 
 import pickle
 
+from sklearn.manifold import TSNE
+
 from lineEmb import *
 import os
 import numpy
@@ -13,10 +15,9 @@ from sklearn.decomposition import PCA
 import pandas as pd
 import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D
-    
 if __name__=='__main__':
     
-    for name in [ 'airport']:
+    for name in ['cora-edgelist']:
 
         edge_file= '%s.txt'%name
         #label_file= './%s/%s-label.txt'%(name, name)
@@ -33,7 +34,7 @@ if __name__=='__main__':
             social_edges.append((a[0],a[1]))
 
         
-        for size in [8]: #50, 100, 200
+        for size in [128]: #50, 100, 200
 
             model= lineEmb( edge_file,  social_edges, name,  emb_size= size, alpha=5, epoch=6, batch_size=128, shuffel=True)
         
@@ -42,7 +43,7 @@ if __name__=='__main__':
         print('\n')
         
         with open('embeddings.pickle', 'wb') as handle:
-        pickle.dump(embeddings, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(embeddings, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
         for i in range(1,5):
             print(i, embeddings[i])
@@ -60,10 +61,13 @@ if __name__=='__main__':
     
     text_file = open("cluster.txt", "r")
     lines = text_file.readlines()
-    cluster = [0 for i in range(500)]
+    cluster = [0 for i in range(2708)]
     for line in lines:
-        ll = line.strip().split(" ")
-        cluster[int(ll[0])] = int(ll[1])
+        try:
+            ll = line.strip().split(" ")
+            cluster[int(ll[0])] = int(ll[1])
+        except:
+            line
     text_file.close()
     cluster = np.array(cluster)
     Embedding = embeddings.values()
@@ -95,5 +99,22 @@ if __name__=='__main__':
          )
         plt.show()
 
+    def vis_tsne(Embedding, cluster):
+        tsne = TSNE(n_components=2)
+        tsne = tsne.fit_transform(Embedding)
+        principalDf = pd.DataFrame(data=tsne, columns=['one', 'two'])
+        principalDf["y"] = cluster
+        plt.figure(figsize=(8, 8))
+        sns.scatterplot(
+            x="one", y="two",
+            hue="y",
+            palette=sns.color_palette("husl", 5),
+            data=principalDf,
+            legend="full"
+        )
+        plt.show()
+
+
     vis_2D(Embedding,cluster)
     vis_3D(Embedding,cluster)
+    vis_tsne(Embedding,cluster)
