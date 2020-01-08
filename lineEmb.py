@@ -172,6 +172,7 @@ class lineEmb():
         windows = flatten([list(nltk.ngrams(c, self.context_size * 2 + 1)) for c in sequences])
         return sequences
 
+    #Recursive Function 
     def capture_sequence(self, sequence, node, counter):
         if counter==0:
             return sequence
@@ -189,19 +190,16 @@ class lineEmb():
         
         final_losses = []
         
-
         model = LossNegSampling(len(set(self.all_nodes)), self.emb_size, nb_labels,
          self.sequence_length, self.context_size, self.no_of_sequences_per_node)
         
         if USE_CUDA:
            model = model.cuda()
            
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        optimizer = optim.Adam(model.parameters(), lr=model.lr) #Learning Rate changed dynamically 
        
         self.epoches=[]
-        
-        #f_loss=open('%s_size_%d_line.txt'%(self.name, self.emb_size), 'w')
-        
+                
         for epoch in range(self.epoch):
             
             t1=time.time() 
@@ -221,6 +219,10 @@ class lineEmb():
 
                 final_loss.backward()
                 optimizer.step()
+
+                # The changing of the learning rate
+                for param in optimizer.param_groups:
+                    param['lr'] = model.lr
             
                 final_losses.append(final_loss.data.cpu().numpy())
             

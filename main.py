@@ -14,8 +14,17 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import pandas as pd
 import seaborn as sns
-from mpl_toolkits.mplot3d import Axes3D
+# from mpl_toolkits.mplot3d import Axes3D
 if __name__=='__main__':
+
+
+    f = open("gamma_values.txt", "w")
+    f.write("Gamma Values:"+"\n")
+    f.close()
+
+    f = open("alpha_values.txt", "w")
+    f.write("Alpha Values:"+"\n")
+    f.close()
     
     for name in ['cora-edgelist']:
 
@@ -25,7 +34,7 @@ if __name__=='__main__':
         
         f_social= open(edge_file, 'r')
         
-        nb_labels=5
+        nb_labels = 6 #5
         social_edges=[]
         
         for line in f_social:
@@ -34,7 +43,7 @@ if __name__=='__main__':
             social_edges.append((a[0],a[1]))
 
         
-        for size in [128]: #50, 100, 200
+        for size in [50]: #50, 100, 200
 
             model= lineEmb( edge_file,  social_edges, name,  emb_size= size, alpha=5, epoch=6, batch_size=128, shuffel=True)
         
@@ -42,22 +51,16 @@ if __name__=='__main__':
         
         print('\n')
         
-        with open('embeddings.pickle', 'wb') as handle:
-        	pickle.dump(embeddings, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        
-        for i in range(1,5):
-            print(i, embeddings[i])
+        # for i in range(1,5):
+        #     print(i, embeddings[i])
 
             #node_classification( embeddings, label_file, name, size)
             #link_prediction(edge_file,  embeddings, name, size)
             #plot_embeddings( embeddings, label_file, name)
-            
-    print(final_loss_list)
-    print(len(final_loss_list))
-    
-    plt.plot(final_loss_list)
-    plt.ylabel('loss')
-    plt.show()
+                
+    # plt.plot(final_loss_list)
+    # plt.ylabel('loss')
+    # plt.show()
     
     text_file = open("cluster.txt", "r")
     lines = text_file.readlines()
@@ -73,27 +76,27 @@ if __name__=='__main__':
     Embedding = embeddings.values()
     Embedding = list(Embedding)
 
-    def vis_3D (Embedding,cluster) :
-        pca = PCA(n_components=3)
-        pca = pca.fit_transform(Embedding)
-        principalDf = pd.DataFrame(data=pca, columns=['one', 'two','three'])
-        principalDf["y"] = cluster
-        fig = plt.figure(figsize=(16, 10))
-        ax = Axes3D(fig)
-        ax.scatter(principalDf['one'], principalDf['two'], principalDf['three'], c=principalDf['y'], marker='o')
+    # def vis_3D (Embedding,cluster) :
+    #     pca = PCA(n_components=3)
+    #     pca = pca.fit_transform(Embedding)
+    #     principalDf = pd.DataFrame(data=pca, columns=['one', 'two','three'])
+    #     principalDf["y"] = cluster
+    #     fig = plt.figure(figsize=(16, 10))
+    #     ax = Axes3D(fig)
+    #     ax.scatter(principalDf['one'], principalDf['two'], principalDf['three'], c=principalDf['y'], marker='o')
 
-        plt.show()
+    #     plt.show()
 
     def vis_2D(Embedding,cluster):
         pca = PCA(n_components=2)
         pca = pca.fit_transform(Embedding)
-        principalDf = pd.DataFrame(data=pca, columns=['one', 'two'])
+        principalDf = pd.DataFrame(data=pca, columns=['Principal Component 1', 'Principal Component 2'])
         principalDf["y"] = cluster
         plt.figure(figsize=(8, 8))
         sns.scatterplot(
-        x="one", y="two",
+        x="Principal Component 1", y="Principal Component 2",
         hue="y",
-        palette=sns.color_palette("husl", 5),
+        palette=sns.color_palette("husl", nb_labels),
         data=principalDf,
         legend="full"
          )
@@ -102,19 +105,19 @@ if __name__=='__main__':
     def vis_tsne(Embedding, cluster):
         tsne = TSNE(n_components=2)
         tsne = tsne.fit_transform(Embedding)
-        principalDf = pd.DataFrame(data=tsne, columns=['one', 'two'])
+        principalDf = pd.DataFrame(data=tsne, columns=['Principal Component 1', 'Principal Component 2'])
         principalDf["y"] = cluster
         plt.figure(figsize=(8, 8))
         sns.scatterplot(
-            x="one", y="two",
+            x="Principal Component 1", y="Principal Component 2",
             hue="y",
-            palette=sns.color_palette("husl", 5),
+            palette=sns.color_palette("husl", nb_labels),
             data=principalDf,
             legend="full"
         )
         plt.show()
 
 
-    vis_2D(Embedding,cluster)
-    vis_3D(Embedding,cluster)
+    # vis_2D(Embedding,cluster)
+    # vis_3D(Embedding,cluster)
     vis_tsne(Embedding,cluster)
