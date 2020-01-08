@@ -73,16 +73,6 @@ if __name__=='__main__':
     Embedding = embeddings.values()
     Embedding = list(Embedding)
 
-    def vis_3D (Embedding,cluster) :
-        pca = PCA(n_components=3)
-        pca = pca.fit_transform(Embedding)
-        principalDf = pd.DataFrame(data=pca, columns=['one', 'two','three'])
-        principalDf["y"] = cluster
-        fig = plt.figure(figsize=(16, 10))
-        ax = Axes3D(fig)
-        ax.scatter(principalDf['one'], principalDf['two'], principalDf['three'], c=principalDf['y'], marker='o')
-
-        plt.show()
 
     def vis_2D(Embedding,cluster):
         pca = PCA(n_components=2)
@@ -90,6 +80,7 @@ if __name__=='__main__':
         principalDf = pd.DataFrame(data=pca, columns=['one', 'two'])
         principalDf["y"] = cluster
         plt.figure(figsize=(8, 8))
+        plt.title("Embedding's visualization (cora dataset)")
         sns.scatterplot(
         x="one", y="two",
         hue="y",
@@ -116,5 +107,4 @@ if __name__=='__main__':
 
 
     vis_2D(Embedding,cluster)
-    vis_3D(Embedding,cluster)
     vis_tsne(Embedding,cluster)
