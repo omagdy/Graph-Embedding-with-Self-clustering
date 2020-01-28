@@ -16,7 +16,7 @@ class LossNegSampling(nn.Module):
 
         self.V=num_nodes
         self.t=0
-        self.gamma = 0.1 # Initial Clustering Weight Rate
+        self.gamma = 0.01 # Initial Clustering Weight Rate 0.1, 0.001
         self.l = sequence_length
         self.w = context_size
         self.N = no_of_sequences_per_node

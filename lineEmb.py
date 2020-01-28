@@ -22,7 +22,7 @@ class lineEmb():
     
     def __init__(self, edge_file, social_edges=None, name='wiki', emb_size= 2,  
                      alpha=5, epoch=5, batch_size= 256, shuffel=True , neg_samples=5,
-                      sequence_length=80, context_size=5, no_of_sequences_per_node=5):
+                      sequence_length=15, context_size=5, no_of_sequences_per_node=7):
     
         self.emb_size = emb_size
         self.shuffel = shuffel
@@ -162,26 +162,29 @@ class lineEmb():
 
 
     def random_walk_sample(self, no_of_sequences_per_node, sequence_length):
-        sequences = []
+        walks = []
         for node in self.all_nodes:
+        	# node_sequence = []
+        	# walk = self.capture_sequence(node_sequence, node, sequence_length)
+        	# walks.append(walk)
             for i in range(no_of_sequences_per_node):
                 node_sequence = []
-                self.capture_sequence(node_sequence, node, sequence_length)
-                sequences.append(node_sequence)
+                walk = self.capture_sequence(node_sequence, node, sequence_length)
+                walks.append(walk)
         flatten = lambda list: [item for sublist in list for item in sublist]
-        windows = flatten([list(nltk.ngrams(c, self.context_size * 2 + 1)) for c in sequences])
-        return sequences
+        windows = flatten([list(nltk.ngrams(c, self.context_size * 2 + 1)) for c in walks])
+        return windows
 
     #Recursive Function 
-    def capture_sequence(self, sequence, node, counter):
+    def capture_sequence(self, walk, node, counter):
         if counter==0:
-            return sequence
+            return walk
         else:
             counter-=1
             connected_nodes = list(self.G[node])
             random_neighbor_node = random.randint(0,len(connected_nodes)-1)
-            sequence.append(connected_nodes[random_neighbor_node])
-            return self.capture_sequence(sequence, connected_nodes[random_neighbor_node], counter)
+            walk.append(connected_nodes[random_neighbor_node])
+            return self.capture_sequence(walk, connected_nodes[random_neighbor_node], counter)
     
 
     def train (self,nb_labels):
@@ -202,8 +205,8 @@ class lineEmb():
                 
         for epoch in range(self.epoch):
             
-            t1=time.time() 
-            
+            t1=time.time()
+
             for i,  batch in enumerate(self.getBatch(self.batch_size, train_data)):
             
                 inputs, targets= zip(*batch)
@@ -258,17 +261,17 @@ class lineEmb():
         #f.close()
         
         #write to file
-        inputs, targets= zip(*train_data)
-        inputs= torch.cat(inputs) # B x 1
-        targets=torch.cat(targets) # B x 1
+        # inputs, targets= zip(*train_data)
+        # inputs= torch.cat(inputs) # B x 1
+        # targets=torch.cat(targets) # B x 1
         
-        negs = self.negative_sampling(targets , self.neg_samples)
-        model.zero_grad()
-        final_loss,cluster_choice  = model(inputs, targets, negs,nb_labels)
-        f=open("cluster.txt", 'w')
-        for j in range(cluster_choice.size()[0]):
-            f.write(str(int(inputs[j]))+' '+str(int(cluster_choice[j])))
-            f.write('\n')
-        f.close()
+        # negs = self.negative_sampling(targets , self.neg_samples)
+        # model.zero_grad()
+        # final_loss,cluster_choice  = model(inputs, targets, negs,nb_labels)
+        # f=open("cluster.txt", 'w')
+        # for j in range(cluster_choice.size()[0]):
+        #     f.write(str(int(inputs[j]))+' '+str(int(cluster_choice[j])))
+        #     f.write('\n')
+        # f.close()
         
         return final_emb
