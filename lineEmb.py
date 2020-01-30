@@ -22,7 +22,7 @@ class lineEmb():
     
     def __init__(self, edge_file, social_edges=None, name='wiki', emb_size= 2,  
                      alpha=5, epoch=5, batch_size= 256, shuffel=True , neg_samples=5,
-                      sequence_length=15, context_size=5, no_of_sequences_per_node=7):
+                      sequence_length=21, context_size=10, no_of_sequences_per_node=18):
     
         self.emb_size = emb_size
         self.shuffel = shuffel
@@ -113,7 +113,8 @@ class lineEmb():
 
         for sequence in sequences:
             for i in range(self.context_size * 2 + 1):
-                self.train_data.append((sequence[self.context_size], sequence[i]))
+                if i != self.context_size:
+                    self.train_data.append((sequence[self.context_size], sequence[i]))
 
         u_p = []
         v_p = []
@@ -163,16 +164,22 @@ class lineEmb():
 
     def random_walk_sample(self, no_of_sequences_per_node, sequence_length):
         walks = []
+        half_walk = int(sequence_length/2)
         for node in self.all_nodes:
-        	# node_sequence = []
-        	# walk = self.capture_sequence(node_sequence, node, sequence_length)
-        	# walks.append(walk)
             for i in range(no_of_sequences_per_node):
                 node_sequence = []
-                walk = self.capture_sequence(node_sequence, node, sequence_length)
-                walks.append(walk)
+                walk_1 = self.capture_sequence(node_sequence, node, half_walk)
+                walk_1.reverse()
+                node_sequence = []
+                walk_2 = self.capture_sequence(node_sequence, node, half_walk)
+                total_random_walk = walk_1+[node]+walk_2
+                walks.append(total_random_walk)
+        # random.shuffle(walks)
+        # return walks
         flatten = lambda list: [item for sublist in list for item in sublist]
         windows = flatten([list(nltk.ngrams(c, self.context_size * 2 + 1)) for c in walks])
+        # print(len(windows[0]))
+        #random.shuffle(windows)
         return windows
 
     #Recursive Function 
@@ -205,9 +212,22 @@ class lineEmb():
                 
         for epoch in range(self.epoch):
             
-            t1=time.time()
+            t1=time.time()           
+
+            f = open("gamma_values.txt", "a")
+            f.write(str(model.gamma)+"\n")
+            f.close()
+            f = open("alpha_values.txt", "a")
+            f.write(str(model.lr)+"\n")
+            f.close() 
 
             for i,  batch in enumerate(self.getBatch(self.batch_size, train_data)):
+
+                model.t+=1 
+                model.gamma=model.gamma*(10**((-model.t*np.log10(model.gamma))/(model.l*((model.w*2)+1)*model.V*model.N)))
+                lr_f = 0.001
+                model.lr = model.lr - ((model.lr-lr_f)*(model.t/(model.l*((model.w*2) +1)*model.V*model.N))) 
+
             
                 inputs, targets= zip(*batch)
                
@@ -232,7 +252,7 @@ class lineEmb():
 
             t2= time.time()
             final_loss_list.append(np.mean(final_losses))
-            print(self.name, 'loss: %0.3f '%np.mean(final_losses),'Epoch time: ', '%0.4f'%(t2-t1), 'dimension size:', self.emb_size,' alpha: ', self.alpha )
+            print(self.name, 'loss: %0.3f '%np.mean(final_losses),'Epoch time: ', '%0.4f'%(t2-t1), 'dimension size:', self.emb_size,' Alpha: ', model.lr,' Gamma: ', model.gamma )
                 
             #f_loss.write(str('final loss: %0.3f '%np.mean(final_losses) ) +' samples_num: '+str(len(self.train_data))+ str(' epoch time: %0.3f '%(t2-t1) )+
                          #' emb_size: '+str(self.emb_size)+ ' alpha: '+str(self.alpha))
@@ -244,7 +264,7 @@ class lineEmb():
         normal_emb={}
 
         #f=open(self.emb_file, 'w')
-        
+
         for w in self.all_nodes:
 
             normal_emb[w]=model.get_emb(self.prepare_node(w, self.word2index))

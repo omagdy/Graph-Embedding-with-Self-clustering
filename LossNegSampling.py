@@ -16,7 +16,7 @@ class LossNegSampling(nn.Module):
 
         self.V=num_nodes
         self.t=0
-        self.gamma = 0.01 # Initial Clustering Weight Rate 0.1, 0.001
+        self.gamma = 0.001 # Initial Clustering Weight Rate 0.1, 0.01, 0.001
         self.l = sequence_length
         self.w = context_size
         self.N = no_of_sequences_per_node
@@ -45,7 +45,7 @@ class LossNegSampling(nn.Module):
         #    print(i, self.embedding_com.weight[i])
         
     def forward(self, u_node, v_node, negative_nodes,nb_labels):
-        self.t=self.t+1
+        # self.t=self.t+1
         u_embed = self.embedding_u(u_node) # B x 1 x Dim  edge (u,v)
         v_embed = self.embedding_u(v_node) # B x 1 x Dim  
                            
@@ -59,17 +59,17 @@ class LossNegSampling(nn.Module):
         loss= -torch.mean(sum_all)
 
                         
-        self.gamma=self.gamma*(10**((-self.t*np.log10(self.gamma))/(self.l*self.w*self.V*self.N)))
-        f = open("gamma_values.txt", "a")
-        f.write(str(self.gamma)+"\n")
-        f.close()
+        # self.gamma=self.gamma*(10**((-self.t*np.log10(self.gamma))/(self.l*self.w*self.V*self.N)))
+        # f = open("gamma_values.txt", "a")
+        # f.write(str(self.gamma)+"\n")
+        # f.close()
 
-        # lr_o = 0.01
-        lr_f = 0.001
-        self.lr = self.lr - ((self.lr-lr_f)*(self.t/(self.l*self.w*self.V*self.N))) 
-        f = open("alpha_values.txt", "a")
-        f.write(str(self.lr)+"\n")
-        f.close()
+        # # lr_o = 0.01
+        # lr_f = 0.001
+        # self.lr = self.lr - ((self.lr-lr_f)*(self.t/(self.l*self.w*self.V*self.N))) 
+        # f = open("alpha_values.txt", "a")
+        # f.write(str(self.lr)+"\n")
+        # f.close()
 
 
         n = u_embed.shape[0]
