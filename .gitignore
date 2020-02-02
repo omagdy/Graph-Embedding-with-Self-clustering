@@ -1,3 +1,6 @@
 venv/*
 __pycache__/*
 cluster.txt
+embeddings.pickle
+cora_GEMSEC.png
+cora_GEMSEC_classification_128.txt
