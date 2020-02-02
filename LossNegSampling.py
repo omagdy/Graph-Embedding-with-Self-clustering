@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import math
 from LossNegSampling import *
 import random
 
@@ -15,8 +16,10 @@ class LossNegSampling(nn.Module):
         super(LossNegSampling, self).__init__()
 
         self.V=num_nodes
-        self.t=0
-        self.gamma = 0.001 # Initial Clustering Weight Rate 0.1, 0.01, 0.001
+        self.dim = emb_dim
+        self.t=1
+        self.gamma_o = 0.01 # Initial Clustering Weight Rate 0.1, 0.01, 0.001
+        self.gamma = 0.01
         self.l = sequence_length
         self.w = context_size
         self.N = no_of_sequences_per_node
@@ -30,9 +33,10 @@ class LossNegSampling(nn.Module):
         self.embedding_u.weight.data.uniform_(-initrange, initrange) # init u
             
         self.nb_labels= nb_labels
-        self.lr = 0.01 # Initial Learning Rate
-
-        
+        self.lr_o = 0.01 # Initial Learning Rate 0.01, 0.005
+        self.lr_f = 0.001 # 0.001 0.0005
+        self.lr = 0.01
+  
         inits=[]
         for k in range(nb_labels):
             rnd_node=torch.tensor([random.randint(0,num_nodes-1)])
@@ -41,11 +45,54 @@ class LossNegSampling(nn.Module):
 
         self.embedding_com.weight.data.copy_(torch.from_numpy(np.array(inits))) ##init_communities
         
-        #for i in range(1,5):
-        #    print(i, self.embedding_com.weight[i])
+
+    def calculate_node_labels(self):
+
+        u_embed = self.embedding_u.weight.data
+        c_embed = self.embedding_com.weight.data
+
+        n = u_embed.shape[0]
+        d = u_embed.shape[1]        
+
+        k = c_embed.shape[0]
+
+        z = u_embed.reshape(n,1,d)
+        z = z.repeat(1,k,1)   
+     
+        mu = c_embed.reshape(1,k,d)
+        mu = mu.repeat(n,1,1)
         
-    def forward(self, u_node, v_node, negative_nodes,nb_labels):
-        # self.t=self.t+1
+        dist = (z-mu).norm(2,dim=2).reshape((n,k))
+
+        cluster_choice=torch.argmin(dist,dim=1)
+
+        return cluster_choice
+
+    def calculate_new_cluster_centers(self, node_labels):
+        nodes_per_cluster = {}
+        for i in range(self.nb_labels):
+            nodes_per_cluster[i]=[]
+
+        for i in range(len(node_labels)):
+            a = int(node_labels[i])
+            nodes_per_cluster[a].append(self.embedding_u.weight.data[i])
+
+        for i in range(self.nb_labels):
+            npc = nodes_per_cluster[i]
+            w=0
+            for j in range(len(npc)):
+                w+=npc[j]
+            w=w/len(npc)
+            if type(w)!=int:
+                self.embedding_com.weight.data[i]=w
+
+
+    def sq_loss_clusters(self, nodes_emb, centroids):
+        return ((nodes_emb[:, None]-centroids[None])**2).sum(2).min(1)[0].mean()
+        
+    def forward(self, u_node, v_node, negative_nodes, centers):
+        
+
         u_embed = self.embedding_u(u_node) # B x 1 x Dim  edge (u,v)
         v_embed = self.embedding_u(v_node) # B x 1 x Dim  
                            
@@ -58,37 +105,31 @@ class LossNegSampling(nn.Module):
             
         loss= -torch.mean(sum_all)
 
-                        
-        # self.gamma=self.gamma*(10**((-self.t*np.log10(self.gamma))/(self.l*self.w*self.V*self.N)))
-        # f = open("gamma_values.txt", "a")
-        # f.write(str(self.gamma)+"\n")
-        # f.close()
 
-        # # lr_o = 0.01
-        # lr_f = 0.001
-        # self.lr = self.lr - ((self.lr-lr_f)*(self.t/(self.l*self.w*self.V*self.N))) 
-        # f = open("alpha_values.txt", "a")
-        # f.write(str(self.lr)+"\n")
-        # f.close()
-
+        c_embed = self.embedding_com.weight.data
 
         n = u_embed.shape[0]
-        d = u_embed.shape[1]        
-        z = u_embed.repeat(1,self.nb_labels,1)          
-     
-        #print(u_embed)
-        #print(u_embed.size())
-        
-        mu = self.embedding_com.weight.repeat(n,1,1)
-        
-        dist = (z-mu).norm(2,dim=2).reshape((n,self.nb_labels))
+        d = u_embed.shape[2]
 
-        loss2= (dist.min(dim=1)[0]**2).mean()
+        node_emb = u_embed.reshape(n,d)
 
-        cluster_choice=torch.argmin(dist,dim=1)
+        loss2 = self.sq_loss_clusters(node_emb, c_embed)
+
+        #n = u_embed.shape[0]
+        #d = u_embed.shape[2]
+        #k = c_embed.shape[0]
+        #z = u_embed.reshape(n,1,d)
+        #z = z.repeat(1,k,1)   
+        #mu = c_embed.reshape(1,k,d)
+        #mu = mu.repeat(n,1,1)
+        #dist = (z-mu).norm(2,dim=2).reshape((n,k))
+        #loss2= self.logsigmoid((dist.min(dim=1)[0]**2)).mean()
+        # cluster_choice=torch.argmin(dist,dim=1)
+
         final_loss=loss+(loss2*self.gamma)
 
-        return final_loss,cluster_choice 
+        # return final_loss, cluster_choice
+        return final_loss
 
     
     def get_emb(self, input_node):
@@ -96,19 +137,3 @@ class LossNegSampling(nn.Module):
         embeds = self.embedding_u(input_node) ### u
 
         return embeds
-
-    # @staticmethod
-    # def cluster_labels(encode_output, centroids):
-    #     """
-    #     Alternate Method for node cluster Identification
-
-    #     """
-    #     assert encode_output.size(2) == centroids.size(1), "Dimension mismatch"
-    #     final_clusters = []
-    #     for i in range(encode_output.size(0)):
-    #         dists = []
-    #         for j in range(centroids.size(0)):
-    #             dist = torch.norm(encode_output[i][0] - centroids[j], float("inf"))
-    #             dists.append(dist)
-    #         final_clusters.append(dists.index(min(dists)))
-    #     return final_clusters

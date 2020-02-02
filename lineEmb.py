@@ -6,6 +6,7 @@ import numpy as np
 import nltk
 import time
 import networkx as nx
+from Classifier import *
 
 from LossNegSampling import *
 
@@ -22,7 +23,7 @@ class lineEmb():
     
     def __init__(self, edge_file, social_edges=None, name='wiki', emb_size= 2,  
                      alpha=5, epoch=5, batch_size= 256, shuffel=True , neg_samples=5,
-                      sequence_length=21, context_size=10, no_of_sequences_per_node=18):
+                      sequence_length=23, context_size=10, no_of_sequences_per_node=8):
     
         self.emb_size = emb_size
         self.shuffel = shuffel
@@ -105,12 +106,6 @@ class lineEmb():
         
         self.train_data = []
        
-        # for u, v  in self.social_edges:
-
-        #     for i in range(self.alpha):
-        #         self.train_data.append(( u, v))
-        #         self.train_data.append(( v, u))
-
         for sequence in sequences:
             for i in range(self.context_size * 2 + 1):
                 if i != self.context_size:
@@ -122,10 +117,10 @@ class lineEmb():
         
         for tr in self.train_data:
             
-            #print('sample', tr_num, 'len(train_data)', len(self.train_data))
             u_p.append(self.prepare_node(tr[0], self.word2index).view(1, -1))
             v_p.append(self.prepare_node(tr[1], self.word2index).view(1, -1))
             tr_num+=1
+
             
         train_samples = list(zip(u_p, v_p))
         
@@ -178,7 +173,6 @@ class lineEmb():
         # return walks
         flatten = lambda list: [item for sublist in list for item in sublist]
         windows = flatten([list(nltk.ngrams(c, self.context_size * 2 + 1)) for c in walks])
-        # print(len(windows[0]))
         #random.shuffle(windows)
         return windows
 
@@ -190,8 +184,9 @@ class lineEmb():
             counter-=1
             connected_nodes = list(self.G[node])
             random_neighbor_node = random.randint(0,len(connected_nodes)-1)
-            walk.append(connected_nodes[random_neighbor_node])
-            return self.capture_sequence(walk, connected_nodes[random_neighbor_node], counter)
+            next_node=connected_nodes[random_neighbor_node]
+            walk.append(next_node)
+            return self.capture_sequence(walk, next_node, counter)
     
 
     def train (self,nb_labels):
@@ -199,8 +194,7 @@ class lineEmb():
         train_data= self.prepare_trainData(self.random_walk_sample(self.no_of_sequences_per_node, self.sequence_length))
         
         final_losses = []
-        
-        model = LossNegSampling(len(set(self.all_nodes)), self.emb_size, nb_labels,
+        model = LossNegSampling(len(self.all_nodes), self.emb_size, nb_labels,
          self.sequence_length, self.context_size, self.no_of_sequences_per_node)
         
         if USE_CUDA:
@@ -219,17 +213,18 @@ class lineEmb():
             f.close()
             f = open("alpha_values.txt", "a")
             f.write(str(model.lr)+"\n")
-            f.close() 
+            f.close()
 
             for i,  batch in enumerate(self.getBatch(self.batch_size, train_data)):
-
-                model.t+=1 
-                model.gamma=model.gamma*(10**((-model.t*np.log10(model.gamma))/(model.l*((model.w*2)+1)*model.V*model.N)))
-                lr_f = 0.001
-                model.lr = model.lr - ((model.lr-lr_f)*(model.t/(model.l*((model.w*2) +1)*model.V*model.N))) 
-
             
                 inputs, targets= zip(*batch)
+
+                model.t+=len(inputs)
+                model.gamma=model.gamma_o*(10**((-model.t*math.log10(model.gamma_o))/(model.l*model.w*model.V*model.N)))           
+                model.lr = model.lr_o - ((model.lr_o-model.lr_f)*(model.t/(model.l*model.w*model.V*model.N))) 
+                # The changing of the learning rate
+                for param in optimizer.param_groups:
+                    param['lr'] = model.lr
                
                 inputs= torch.cat(inputs) # B x 1
                 targets=torch.cat( targets) # B x 1
@@ -237,61 +232,51 @@ class lineEmb():
                 negs = self.negative_sampling(targets , self.neg_samples)
     
                 model.zero_grad()
-                
-                final_loss,cluster_choice  = model(inputs, targets, negs,nb_labels)
+
+                #Update the community embedding
+                node_labels = model.calculate_node_labels() 
+                model.calculate_new_cluster_centers(node_labels)
+
+                final_loss  = model(inputs, targets, negs)
+                # final_loss,cluster_choice  = model(inputs, targets, negs,nb_labels)
 
                 final_loss.backward()
                 optimizer.step()
 
-                # The changing of the learning rate
-                for param in optimizer.param_groups:
-                    param['lr'] = model.lr
-            
                 final_losses.append(final_loss.data.cpu().numpy())
-            
+
 
             t2= time.time()
             final_loss_list.append(np.mean(final_losses))
-            print(self.name, 'loss: %0.3f '%np.mean(final_losses),'Epoch time: ', '%0.4f'%(t2-t1), 'dimension size:', self.emb_size,' Alpha: ', model.lr,' Gamma: ', model.gamma )
-                
-            #f_loss.write(str('final loss: %0.3f '%np.mean(final_losses) ) +' samples_num: '+str(len(self.train_data))+ str(' epoch time: %0.3f '%(t2-t1) )+
-                         #' emb_size: '+str(self.emb_size)+ ' alpha: '+str(self.alpha))
-            #f_loss.write('\n')
+            print(self.name, ' Epoch Number: ', epoch,' loss: %0.3f '%np.mean(final_losses),' Alpha: ', model.lr,' Gamma: ', model.gamma ,' t: ', model.t,' l: ', model.l,' w: ', model.w,' N: ', model.N)                                               
 
-        #f_loss.close()
+            self.validate(model)
+                
 
         final_emb={}
         normal_emb={}
 
-        #f=open(self.emb_file, 'w')
-
         for w in self.all_nodes:
 
             normal_emb[w]=model.get_emb(self.prepare_node(w, self.word2index))
-
-            #f.write(str(w))
-            #for j in normal_emb[w].data.cpu().numpy()[0]:
-                #f.write(' '+str(j))
-            #f.write('\n')
             
             vec=[float(i) for i in normal_emb[w].data.cpu().numpy()[0]]
 
             final_emb[int(w)]=vec
             
-        #f.close()
-        
-        #write to file
-        # inputs, targets= zip(*train_data)
-        # inputs= torch.cat(inputs) # B x 1
-        # targets=torch.cat(targets) # B x 1
-        
-        # negs = self.negative_sampling(targets , self.neg_samples)
-        # model.zero_grad()
-        # final_loss,cluster_choice  = model(inputs, targets, negs,nb_labels)
-        # f=open("cluster.txt", 'w')
-        # for j in range(cluster_choice.size()[0]):
-        #     f.write(str(int(inputs[j]))+' '+str(int(cluster_choice[j])))
-        #     f.write('\n')
-        # f.close()
         
         return final_emb
+
+
+    def validate(self, model):
+        final_emb={}
+        normal_emb={}
+
+        for w in self.all_nodes:
+
+            normal_emb[w]=model.get_emb(self.prepare_node(w, self.word2index))
+            
+            vec=[float(i) for i in normal_emb[w].data.cpu().numpy()[0]]
+
+            final_emb[int(w)]=vec
+        node_classification(final_emb, "cora-label.txt", "cora_GEMSEC", 128)

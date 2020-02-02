@@ -46,8 +46,8 @@ class Classifier(object):
             results[average] = f1_score(Y, Y_, average=average)
 
         results['acc'] = accuracy_score(Y, Y_)
-        print('-------------------')
-        print(self.name, 'node calssification: ', results)
+        # print('-------------------')
+        # print(self.name, 'node calssification: ', results)
         return results
 
     def predict(self, X, top_k_list):
@@ -96,13 +96,15 @@ def node_classification(embeddings, label_path,name, size):
         all_ratio = []
 
         for tr_frac in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-            print(" Training classifier using {:.2f}% nodes...".format(tr_frac * 100))
+            # print(" Training classifier using {:.2f}% nodes...".format(tr_frac * 100))
             clf = Classifier(embeddings=embeddings, clf=LogisticRegression(), name=name)
             results = clf.split_train_evaluate(X, Y, tr_frac)
             avg = 'macro'
             f_c.write(name + ' train percentage: ' + str(tr_frac) + ' F1-' + avg + ' ' + str('%0.5f' % results[avg]))
             all_ratio.append(results[avg])
             f_c.write('\n')
+        f_c = open('%s_classification_%d.txt' % (name, size), 'r')
+        print(f_c.read()) 
 
 
 def plot_embeddings(embeddings,label_file,name):

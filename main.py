@@ -5,7 +5,7 @@ import pickle
 from sklearn.manifold import TSNE
 
 from lineEmb import *
-from Classifier import *
+# from Classifier import *
 import os
 import numpy
 
@@ -52,68 +52,6 @@ if __name__=='__main__':
         
         print('\n')
         
-        # for i in range(1,5):
-        #     print(i, embeddings[i])
-
-            #node_classification( embeddings, label_file, name, size)
-            #link_prediction(edge_file,  embeddings, name, size)
-            #plot_embeddings( embeddings, label_file, name)
-                
-    # plt.plot(final_loss_list)
-    # plt.ylabel('loss')
-    # plt.show()
-
     node_classification(embeddings, "cora-label.txt", "cora_GEMSEC", 128)
     plot_embeddings(embeddings, "cora-label.txt", "cora_GEMSEC")
     
-
-
-    # text_file = open("cluster.txt", "r")
-    # lines = text_file.readlines()
-    # cluster = [0 for i in range(2708)]
-    # for line in lines:
-    #     try:
-    #         ll = line.strip().split(" ")
-    #         cluster[int(ll[0])] = int(ll[1])
-    #     except:
-    #         line
-    # text_file.close()
-    # cluster = np.array(cluster)
-    # Embedding = embeddings.values()
-    # Embedding = list(Embedding)
-
-
-    # def vis_2D(Embedding,cluster):
-    #     pca = PCA(n_components=2)
-    #     pca = pca.fit_transform(Embedding)
-    #     principalDf = pd.DataFrame(data=pca, columns=['Principal Component 1', 'Principal Component 2'])
-    #     principalDf["y"] = cluster
-    #     plt.figure(figsize=(8, 8))
-    #     plt.title("Embedding's visualization (cora dataset)")
-    #     sns.scatterplot(
-    #     x="Principal Component 1", y="Principal Component 2",
-    #     hue="y",
-    #     palette=sns.color_palette("husl", nb_labels),
-    #     data=principalDf,
-    #     legend="full"
-    #      )
-    #     plt.show()
-
-    # def vis_tsne(Embedding, cluster):
-    #     tsne = TSNE(n_components=2)
-    #     tsne = tsne.fit_transform(Embedding)
-    #     principalDf = pd.DataFrame(data=tsne, columns=['Principal Component 1', 'Principal Component 2'])
-    #     principalDf["y"] = cluster
-    #     plt.figure(figsize=(8, 8))
-    #     sns.scatterplot(
-    #         x="Principal Component 1", y="Principal Component 2",
-    #         hue="y",
-    #         palette=sns.color_palette("husl", nb_labels),
-    #         data=principalDf,
-    #         legend="full"
-    #     )
-    #     plt.show()
-
-
-    # vis_2D(Embedding,cluster)
-    # vis_tsne(Embedding,cluster)
