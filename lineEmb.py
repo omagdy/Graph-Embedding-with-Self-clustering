@@ -23,7 +23,7 @@ class lineEmb():
     
     def __init__(self, edge_file, social_edges=None, name='wiki', emb_size= 2,  
                      alpha=5, epoch=5, batch_size= 256, shuffel=True , neg_samples=5,
-                      sequence_length=23, context_size=10, no_of_sequences_per_node=8):
+                      sequence_length=17, context_size=8, no_of_sequences_per_node=15):
     
         self.emb_size = emb_size
         self.shuffel = shuffel
@@ -250,7 +250,7 @@ class lineEmb():
             final_loss_list.append(np.mean(final_losses))
             print(self.name, ' Epoch Number: ', epoch,' loss: %0.3f '%np.mean(final_losses),' Alpha: ', model.lr,' Gamma: ', model.gamma ,' t: ', model.t,' l: ', model.l,' w: ', model.w,' N: ', model.N)                                               
 
-            self.validate(model)
+            # self.validate(model)
                 
 
         final_emb={}

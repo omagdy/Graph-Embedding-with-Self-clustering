@@ -18,8 +18,8 @@ class LossNegSampling(nn.Module):
         self.V=num_nodes
         self.dim = emb_dim
         self.t=1
-        self.gamma_o = 0.01 # Initial Clustering Weight Rate 0.1, 0.01, 0.001
-        self.gamma = 0.01
+        self.gamma_o = 0.001 # Initial Clustering Weight Rate 0.1, 0.01, 0.001
+        self.gamma = 0.001
         self.l = sequence_length
         self.w = context_size
         self.N = no_of_sequences_per_node
@@ -33,9 +33,9 @@ class LossNegSampling(nn.Module):
         self.embedding_u.weight.data.uniform_(-initrange, initrange) # init u
             
         self.nb_labels= nb_labels
-        self.lr_o = 0.01 # Initial Learning Rate 0.01, 0.005
-        self.lr_f = 0.001 # 0.001 0.0005
-        self.lr = 0.01
+        self.lr_o = 0.001 # Initial Learning Rate 0.01, 0.005
+        self.lr_f = 0.0001 # 0.001 0.0005
+        self.lr = 0.001
   
         inits=[]
         for k in range(nb_labels):
@@ -86,11 +86,11 @@ class LossNegSampling(nn.Module):
             if type(w)!=int:
                 self.embedding_com.weight.data[i]=w
 
-
+    # Calculate
     def sq_loss_clusters(self, nodes_emb, centroids):
         return ((nodes_emb[:, None]-centroids[None])**2).sum(2).min(1)[0].mean()
         
-    def forward(self, u_node, v_node, negative_nodes, centers):
+    def forward(self, u_node, v_node, negative_nodes):
         
 
         u_embed = self.embedding_u(u_node) # B x 1 x Dim  edge (u,v)

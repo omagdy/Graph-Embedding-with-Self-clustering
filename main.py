@@ -46,7 +46,7 @@ if __name__=='__main__':
         
         for size in [128]: #50, 100, 200
 
-            model= lineEmb( edge_file,  social_edges, name,  emb_size= size, alpha=5, epoch=10, batch_size=256, shuffel=True)
+            model= lineEmb( edge_file,  social_edges, name,  emb_size= size, alpha=5, epoch=4, batch_size=256, shuffel=True)
         
             embeddings= model.train(nb_labels)
         
