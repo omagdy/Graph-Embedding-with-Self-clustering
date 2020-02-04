@@ -18,19 +18,23 @@ class LossNegSampling(nn.Module):
         self.V=num_nodes
         self.dim = emb_dim
         self.t=1
-        self.gamma_o = 0.001 # Initial Clustering Weight Rate 0.1, 0.01, 0.001
-        self.gamma = 0.001
+        self.gamma_o = 0.01 # Initial Clustering Weight Rate 0.1, 0.01, 0.001
+        self.gamma = 0.01
         self.l = sequence_length
         self.w = context_size
         self.N = no_of_sequences_per_node
 
         self.embedding_u = nn.Embedding(num_nodes, emb_dim) #  embedding  u
+        self.embedding_v = nn.Embedding(num_nodes, emb_dim) #  embedding  v
+
         self.embedding_com = nn.Embedding(nb_labels, emb_dim) #  embedding  community centers
        
         self.logsigmoid = nn.LogSigmoid()
     
         initrange = (2.0 / (num_nodes + emb_dim))**0.5 # Xavier init 2.0/sqrt(num_nodes+emb_dim)
         self.embedding_u.weight.data.uniform_(-initrange, initrange) # init u
+        # self.embedding_v.weight.data.uniform_(-initrange, initrange) # init u
+        self.embedding_v.weight.data.uniform_(-0.0, 0.0) # init u
             
         self.nb_labels= nb_labels
         self.lr_o = 0.001 # Initial Learning Rate 0.01, 0.005
@@ -94,9 +98,9 @@ class LossNegSampling(nn.Module):
         
 
         u_embed = self.embedding_u(u_node) # B x 1 x Dim  edge (u,v)
-        v_embed = self.embedding_u(v_node) # B x 1 x Dim  
+        v_embed = self.embedding_v(v_node) # B x 1 x Dim  
                            
-        negs = -self.embedding_u(negative_nodes) # B x K x Dim  neg samples
+        negs = -self.embedding_v(negative_nodes) # B x K x Dim  neg samples
      
         positive_score=  v_embed.bmm(u_embed.transpose(1, 2)).squeeze(2) # Bx1
         negative_score= torch.sum(negs.bmm(u_embed.transpose(1, 2)).squeeze(2), 1).view(negative_nodes.size(0), -1) # BxK -> Bx1

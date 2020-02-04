@@ -35,7 +35,7 @@ if __name__=='__main__':
         
         f_social= open(edge_file, 'r')
         
-        nb_labels = 7 #5
+        nb_labels = 6 #7
         social_edges=[]
         
         for line in f_social:
@@ -52,6 +52,6 @@ if __name__=='__main__':
         
         print('\n')
         
-    node_classification(embeddings, "cora-label.txt", "cora_GEMSEC", 128)
-    plot_embeddings(embeddings, "cora-label.txt", "cora_GEMSEC")
+        node_classification(embeddings, "cora-label.txt", "cora_GEMSEC", 128)
+        plot_embeddings(embeddings, "cora-label.txt", "cora_GEMSEC")
     
