@@ -39,7 +39,7 @@ class LossNegSampling(nn.Module):
         self.nb_labels= nb_labels
         self.lr_o = 0.001 # Initial Learning Rate 0.01, 0.005
         self.lr_f = 0.0001 # 0.001 0.0005
-        self.lr = 0.001
+        self.lr = 0.01
   
         inits=[]
         for k in range(nb_labels):

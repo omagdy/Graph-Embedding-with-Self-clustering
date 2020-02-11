@@ -23,7 +23,7 @@ class lineEmb():
     
     def __init__(self, edge_file, social_edges=None, name='wiki', emb_size= 2,  
                      alpha=5, epoch=5, batch_size= 256, shuffel=True , neg_samples=5,
-                      sequence_length=11, context_size=5, no_of_sequences_per_node=30):
+                      sequence_length=13, context_size=6, no_of_sequences_per_node=10):
     
         self.emb_size = emb_size
         self.shuffel = shuffel
@@ -191,7 +191,7 @@ class lineEmb():
 
     def train (self,nb_labels):
         
-        train_data= self.prepare_trainData(self.random_walk_sample(self.no_of_sequences_per_node, self.sequence_length))
+        # train_data= self.prepare_trainData(self.random_walk_sample(self.no_of_sequences_per_node, self.sequence_length))
         
         final_losses = []
         model = LossNegSampling(len(self.all_nodes), self.emb_size, nb_labels,
@@ -215,11 +215,15 @@ class lineEmb():
             f.write(str(model.lr)+"\n")
             f.close()
 
+            train_data= self.prepare_trainData(self.random_walk_sample(self.no_of_sequences_per_node, self.sequence_length))
+
             for i,  batch in enumerate(self.getBatch(self.batch_size, train_data)):
             
                 inputs, targets= zip(*batch)
 
-                model.t+=len(inputs)
+                # model.t+=(len(inputs))
+                # model.t+=(len(inputs))/(self.context_size*2)
+                model.t+=(len(self.all_nodes))*(self.no_of_sequences_per_node)/(self.batch_size)
                 model.gamma=model.gamma_o*(10**((-model.t*math.log10(model.gamma_o))/(model.l*model.w*model.V*model.N)))           
                 model.lr = model.lr_o - ((model.lr_o-model.lr_f)*(model.t/(model.l*model.w*model.V*model.N))) 
                 # The changing of the learning rate

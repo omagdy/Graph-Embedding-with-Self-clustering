@@ -35,7 +35,7 @@ if __name__=='__main__':
         
         f_social= open(edge_file, 'r')
         
-        nb_labels = 6 #7
+        nb_labels = 7 #7
         social_edges=[]
         
         for line in f_social:
