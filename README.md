@@ -1,2 +1,2 @@
-# graph-embedding-with-self-clustering
-
+Run the project using
+'python main.py'
